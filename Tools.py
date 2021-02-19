@@ -122,21 +122,39 @@ def decrypt_vigenere(cipher, key):
         orig_text.append(chr(x)) 
     return("" . join(orig_text)) 
 
-def encrypt_hill(text, key, mod): #assumes text is already broken up into # of key columns fix this later
+def encrypt_hill(text, key, mod): #binary probably doesnt work properly because of to letter array calls //
     key = numpy.array(key)
-    text = numpy.array(to_numberArray(text)) 
-    cipher = numpy.matmul(text, key)
-    cipher = cipher % mod
-    cipher = to_letterArray(cipher)
-    return (cipher)
+    text = numpy.array(to_numberArray(text))
+    blockLength = len(key[0])
+    passes = math.ceil(len(text) / blockLength)
+    for i in range((passes * blockLength) - len(text)):
+        text = numpy.append(text, [0])
+    cipher = []
+    for i in range(passes):
+        textBlock = text[i * blockLength:(i + 1) * blockLength]
+        cipherBlock = numpy.matmul(textBlock, key)
+        cipherBlock = cipherBlock % mod
+        cipherBlock = to_letterArray(cipherBlock)
+        for j in range(len(cipherBlock)):
+            cipher.append(cipherBlock[j]) 
+    return (''.join(cipher))
 
 def decrypt_hill(cipher, key, mod):
     key = numpy.array(key)
     inverse_key = Matrix(key).inv_mod(mod)
     inverse_key = numpy.array(inverse_key)
     cipher = numpy.array(to_numberArray(cipher))
-    text = numpy.matmul(cipher, inverse_key)
-    text = text % mod
-    text = to_letterArray(text)
-    return text
+    blockLength = len(key[0]) 
+    passes = math.ceil(len(cipher) / blockLength)
+    for i in range((passes * blockLength) - len(cipher)):
+        cipher = numpy.append(cipher, [0])
+    text = []
+    for i in range(passes):
+        cipherBlock = cipher[i * blockLength:(i + 1) * blockLength]
+        textBlock = numpy.matmul(cipherBlock, inverse_key)
+        textBlock = textBlock % mod
+        textBlock = to_letterArray(textBlock)
+        for j in range(len(textBlock)):
+            text.append(textBlock[j]) 
+    return (''.join(text))
 
