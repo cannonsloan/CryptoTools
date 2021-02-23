@@ -7,8 +7,11 @@ from sympy import Matrix
 # General Functions
 
 def to_number(c):
-    assert (c in string.ascii_letters)
-    return ord(c.lower()) - ord('a')
+    if (c.isdigit()):
+        return int(c)
+    else:
+        assert (c in string.ascii_letters)
+        return ord(c.lower()) - ord('a')
 
 def to_numberArray(letters):
     numberArray = []
@@ -122,7 +125,7 @@ def decrypt_vigenere(cipher, key):
         orig_text.append(chr(x)) 
     return("" . join(orig_text)) 
 
-def encrypt_hill(text, key, mod): #binary probably doesnt work properly because of to letter array calls //
+def encrypt_hill(text, key, mod):
     key = numpy.array(key)
     text = numpy.array(to_numberArray(text))
     blockLength = len(key[0])
@@ -134,7 +137,10 @@ def encrypt_hill(text, key, mod): #binary probably doesnt work properly because 
         textBlock = text[i * blockLength:(i + 1) * blockLength]
         cipherBlock = numpy.matmul(textBlock, key)
         cipherBlock = cipherBlock % mod
-        cipherBlock = to_letterArray(cipherBlock)
+        if (mod == 2):
+            cipherBlock = [str(z) for z in cipherBlock]
+        else:
+            cipherBlock = to_letterArray(cipherBlock) #wont work for binary return
         for j in range(len(cipherBlock)):
             cipher.append(cipherBlock[j]) 
     return (''.join(cipher))
@@ -153,7 +159,10 @@ def decrypt_hill(cipher, key, mod):
         cipherBlock = cipher[i * blockLength:(i + 1) * blockLength]
         textBlock = numpy.matmul(cipherBlock, inverse_key)
         textBlock = textBlock % mod
-        textBlock = to_letterArray(textBlock)
+        if (mod == 2):
+            textBlock = [str(z) for z in textBlock]
+        else:
+            textBlock = to_letterArray(textBlock)
         for j in range(len(textBlock)):
             text.append(textBlock[j]) 
     return (''.join(text))
