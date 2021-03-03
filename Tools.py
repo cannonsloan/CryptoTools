@@ -3,6 +3,7 @@ from numpy import matmul
 import numpy
 from numpy.lib import math
 from sympy import Matrix
+from sympy.logic.boolalg import Xnor
 
 # General Functions
 
@@ -95,6 +96,20 @@ def stringToMatrix(stringArray, value): #given [h,e,l,l,o], 2 return [[h,e], [l,
         stringArray.append('')
     return numpy.reshape(stringArray, (math.ceil(len(stringArray)/value), value))
 
+S1 = [(1,0,1), (0,1,0), (0,0,1), (1,1,0), (0,1,1), (1,0,0), (1,1,1), (0,0,0), (0,0,1), (1,0,0), (1,1,0), (0,1,0), (0,0,0), (1,1,1), (1,0,1), (0,1,1)]
+S2 = [(1,0,0), (0,0,0), (1,1,0), (1,0,1), (1,1,1), (0,0,1), (0,1,1), (0,1,0), (1,0,1), (0,1,1), (0,0,0), (1,1,1), (1,1,0), (0,1,0), (0,0,1), (1,0,0)]
+
+def round_key(k, i):
+    assert len(k) == 9
+    return tuple (k[(i+j-1) % 9] for j in range(8))
+
+def tuple_xor(s, t):
+    assert len(s) == len(t)
+    return tuple(x^y for (x,y) in zip(s,t))
+
+def expander(r):
+    return (r[0], r[1], r[3], r[2], r[3], r[2], r[4], r[5])
+
 def encrypt_affine(text, key):
     return ''.join([ chr((( key[0]*(ord(t) - ord('A')) + key[1] ) % 26)  
                   + ord('A')) for t in text.upper().replace(' ', '') ]) 
@@ -140,7 +155,7 @@ def encrypt_hill(text, key, mod):
         if (mod == 2):
             cipherBlock = [str(z) for z in cipherBlock]
         else:
-            cipherBlock = to_letterArray(cipherBlock) #wont work for binary return
+            cipherBlock = to_letterArray(cipherBlock)
         for j in range(len(cipherBlock)):
             cipher.append(cipherBlock[j]) 
     return (''.join(cipher))
@@ -167,3 +182,34 @@ def decrypt_hill(cipher, key, mod):
             text.append(textBlock[j]) 
     return (''.join(text))
 
+def sdes_f(r, ki):
+    e = expander(r)
+    ek = tuple_xor(e, ki)
+    left_ek_idx = int("".join(str(x) for x in ek[0:4]), 2)
+    right_ek_idx = int("".join(str(x) for x in ek[4:8]), 2)
+    left_cipher = S1[left_ek_idx]
+    right_cipher = S2[right_ek_idx]
+    return left_cipher + right_cipher
+
+def do_des(plain, key, num_rounds, decrypt=False):
+    L = tuple(int(x) for x in plain[0:6])
+    R = tuple(int(x) for x in plain[6:12])
+    k = tuple(int(x) for x in key)
+
+    round_order = list(range(1, num_rounds + 1))
+    assert len(round_order) == num_rounds
+
+    if decrypt:
+        (L, R) = (R, L)
+        round_order.reverse()
+
+    for i in round_order:
+        Lnew = R
+        ki = round_key(k, i)
+        Rnew = tuple_xor(L, sdes_f(R, ki))
+        (L, R) = (Lnew, Rnew)
+
+    if decrypt:
+        (L, R) = (R, L)
+
+    return "".join(str(x) for x in L) + "".join(str(x) for x in R)
